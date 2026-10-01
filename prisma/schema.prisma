@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Proposal {
+  id        String   @id @default(cuid())
+  filename  String
+  title     String?
+  text      String
+  status    String   @default("uploaded")
+  metadata  Json?
+  analysis  Analysis?
+  createdAt DateTime @default(now())
+}
+
+model Analysis {
+  id         String   @id @default(cuid())
+  proposalId String   @unique
+  summary    String?
+  result     Json
+  createdAt  DateTime @default(now())
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+}
+
+model HistoricalProposal {
+  id               String   @id @default(cuid())
+  title            String?
+  abstract         String?
+  department       String?
+  fundingScheme    String?
+  requestedAmount  Float?
+  piExperience     Float?
+  previousGrants   Float?
+  publications     Float?
+  methodologyScore Float?
+  noveltyScore     Float?
+  outcome          Int
+  gender           String?
+  institutionType  String?
+  seniority        String?
+  createdAt        DateTime @default(now())
+}

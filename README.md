@@ -295,3 +295,35 @@ Start them again later with `docker compose up -d`. To deliberately remove the d
 - Semantic similarity is a retrieval aid, not a plagiarism determination. LLM-generated analyses and scores may be incomplete or incorrect and require human review.
 
 Before production use, add authentication and role-based access, secure object storage, validated database migrations, audit/retention controls, background processing, human review, export controls, and an evaluated model and fairness monitoring process. Use real historical data only after applicable privacy and governance approvals.
+
+
+Example:
+
+docker compose up -d; 
+docker compose ps
+
+docker compose up -d postgres qdrant; 
+docker compose ps
+
+npx prisma generate; 
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; 
+npx prisma db push
+
+PostgreSQL and Qdrant are up, Prisma generated successfully, and the database schema is already in sync. 
+I’m starting Next.js now; the optional ML container is the only component I’m skipping because its dependency build is unusually heavy and the main UI doesn’t require it.
+
+npm run dev
+
+<!-- Verify the health check
+try { $page = Invoke-WebRequest 'http://localhost:3000' -TimeoutSec 60; "Web page HTTP $([int]$page.StatusCode), bytes $($page.RawContentLength)" } catch { "Web page request failed: $($_.Exception.Message)" }; try { $db = Invoke-RestMethod 'http://localhost:3000/api/db-test' -TimeoutSec 30; "Database check: success=$($db.success), proposals=$($db.proposalCount)" } catch { "Database API check failed: $($_.Exception.Message)" }; try { $qdrant = Invoke-RestMethod 'http://localhost:6333/collections' -TimeoutSec 10; "Qdrant responded: $($qdrant.result.collections.Count) collections" } catch { "Qdrant check failed: $($_.Exception.Message)" }; try { $health = Invoke-RestMethod 'http://localhost:8000/health' -TimeoutSec 5; "ML service response: $($health.status)" } catch { 'ML service is not running (optional service intentionally skipped).' }The app is running at http://localhost:3000. The page returned HTTP 200, and the database and Qdrant checks succeeded. -->
+
+
+I ran these setup steps:
+
+Confirmed Node, npm, Docker, Ollama, dependencies, and both required models were available.
+Started PostgreSQL and Qdrant with docker compose up -d postgres qdrant.
+Ran npx prisma generate and npx prisma db push; the database was already in sync.
+Started the web app with npm run dev.
+The optional ML container is not running: its image build started downloading a 351 MB dependency, so I stopped that build. The main app does not require it. The database currently reports 9 existing proposals.
+
+

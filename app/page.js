@@ -1,2 +1,72 @@
-'use client'; import {useState} from 'react';
-export default function Home(){const [file,setFile]=useState(null),[data,setData]=useState(null),[loading,setLoading]=useState(false),[error,setError]=useState(''); async function run(){if(!file)return;setLoading(true);setError('');try{const f=new FormData();f.append('file',file);const u=await fetch('/api/upload',{method:'POST',body:f});const ud=await u.json();if(!u.ok)throw Error(ud.error);setData({...ud});const a=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:ud.id})});const ad=await a.json();if(!a.ok)throw Error(ad.error);setData({...ud,result:ad.result});}catch(e){setError(e.message)}finally{setLoading(false)}} const r=data?.result; return <main><header><h1>ResearchLens AI</h1><p>Grant proposal intelligence and pre-submission review</p></header><section className="card"><h2>Upload proposal</h2><input type="file" accept=".pdf,.docx,.txt" onChange={e=>setFile(e.target.files?.[0])}/><button onClick={run} disabled={!file||loading}>{loading?'Analyzing…':'Analyze proposal'}</button>{error&&<p className="error">{error}</p>}</section>{r&&<><section className="card"><h2>Historical fundability model</h2><p className="big">{r.fundability?.probability!=null?`${Math.round(r.fundability.probability*100)}%`: 'Unavailable'}</p><p>{r.fundability?.note||'Model output is an estimate from historical training data, not a guarantee of funding.'}</p></section><section className="grid">{Object.entries(r.scores||{}).map(([k,v])=><div className="metric" key={k}><span>{k}</span><b>{v}</b></div>)}</section><section className="card"><h2>{r.title}</h2><p>{r.summary}</p></section><section className="card"><h2>Issues & recommendations</h2>{(r.issues||[]).map((x,i)=><div className="issue" key={i}><b>{x.severity} · {x.section}</b><p>{x.issue}</p><small>{x.suggestion}</small></div>)}</section><section className="card"><h2>Related academic research</h2>{(r.academicMatches||[]).map((p,i)=><article key={i}><b>{p.title}</b><div>{p.year||'n/a'} · cited {p.cited||0}</div></article>)}</section></>}</main>}
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function Home() {
+	const router = useRouter();
+	const [file, setFile] = useState(null);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState('');
+
+	async function run() {
+		if (!file) return;
+
+		setLoading(true);
+		setError('');
+		let stage = 'upload';
+
+		try {
+			const formData = new FormData();
+			formData.append('file', file);
+
+			const uploadResponse = await fetch('/api/upload', {
+				method: 'POST',
+				body: formData,
+			});
+			const uploadData = await uploadResponse.json();
+
+			if (!uploadResponse.ok) throw new Error(uploadData.error);
+
+			stage = 'analysis';
+			const analysisResponse = await fetch('/api/analyze', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ id: uploadData.id }),
+			});
+			const analysisData = await analysisResponse.json();
+
+			if (!analysisResponse.ok) throw new Error(analysisData.error);
+
+			router.push(`/dashboard/${uploadData.id}`);
+		} catch (cause) {
+			const message = cause instanceof Error ? cause.message : 'Request failed';
+			setError(message === 'fetch failed'
+				? `${stage === 'analysis' ? 'Analysis' : 'Upload'} could not reach a required service. Check Ollama, Qdrant, and the server logs.`
+				: `${stage === 'analysis' ? 'Analysis' : 'Upload'} failed: ${message}`);
+		} finally {
+			setLoading(false);
+		}
+	}
+
+	return (
+		<main>
+			<header>
+				<h1>ResearchLens AI</h1>
+				<p>Grant proposal intelligence and pre-submission review</p>
+			</header>
+			<section className="card">
+				<h2>Upload proposal</h2>
+				<input
+					type="file"
+					accept=".pdf,.docx,.txt"
+					onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+				/>
+				<button onClick={run} disabled={!file || loading}>
+					{loading ? 'Analyzing...' : 'Analyze proposal'}
+				</button>
+				{error && <p className="error">{error}</p>}
+			</section>
+		</main>
+	);
+}
